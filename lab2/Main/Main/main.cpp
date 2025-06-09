@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <algorithm> 
 
 #define NOMINMAX
 
@@ -73,20 +74,43 @@ int main() {
   data.size = n;
 
   // 2. Create the min_max and average threads
-  HANDLE hMinMaxThread = CreateThread(NULL, 0, min_max_thread, &data, 0, NULL);
-  HANDLE hAverageThread = CreateThread(NULL, 0, average_thread, &data, 0, NULL);
+  HANDLE threads[2];
+  threads[0] = CreateThread(NULL, 0, min_max_thread, &data, 0, NULL);
+  threads[1] = CreateThread(NULL, 0, average_thread, &data, 0, NULL);
 
-  if (hMinMaxThread == NULL || hAverageThread == NULL) {
+  if (threads[0] == NULL || threads[1] == NULL) {
     return GetLastError();
   }
 
-  // Temporarily wait for both threads
-  WaitForSingleObject(hMinMaxThread, INFINITE);
-  WaitForSingleObject(hAverageThread, INFINITE);
+  // 3. Wait for both threads to complete
+  std::cout << "\nMain thread: Waiting for worker threads to finish...\n";
+  WaitForMultipleObjects(2, threads, TRUE, INFINITE);
+  std::cout << "Main thread: Worker threads finished.\n\n";
 
-  CloseHandle(hMinMaxThread);
-  CloseHandle(hAverageThread);
+  CloseHandle(threads[0]);
+  CloseHandle(threads[1]);
 
-  std::cout << "Main thread finished." << std::endl;
+  // 4. Replace min and max elements with the average
+  int min_index = -1;
+  int max_index = -1;
+  for (int i = 0; i < data.size; ++i) {
+    if (data.arr[i] == data.min_val) min_index = i;
+    if (data.arr[i] == data.max_val) max_index = i;
+  }
+
+  if (min_index != -1) {
+    data.arr[min_index] = static_cast<int>(data.average_val);
+  }
+  if (max_index != -1) {
+    data.arr[max_index] = static_cast<int>(data.average_val);
+  }
+
+  std::cout << "Resulting array: ";
+  for (int i = 0; i < data.size; ++i) {
+    std::cout << data.arr[i] << " ";
+  }
+  std::cout << std::endl;
+
+  // 5. Terminate
   return 0;
 }
