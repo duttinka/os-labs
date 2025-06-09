@@ -1,7 +1,0 @@
-﻿  main.cpp
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(35,2): error C2014: команда препроцессора не должна начинаться с пробела
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(40,19): error C2011: ThreadData: переопределение типа "struct"
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(7,8): message : см. объявление "ThreadData"
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(48,5): error C2084: функция "int main(void)" уже имеет текст реализации
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(15,5): message : см. предыдущее определение "main"
-C:\Users\root\os\os-labs\lab2\Main\Main\main.cpp(61,16): error C2079: "data" использует не имеющую определения структуру struct "ThreadData"
