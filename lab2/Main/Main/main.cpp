@@ -40,6 +40,21 @@ DWORD WINAPI min_max_thread(LPVOID lpParam) {
   return 0;
 }
 
+// Thread function to calculate the average value
+DWORD WINAPI average_thread(LPVOID lpParam) {
+  ThreadData* data = static_cast<ThreadData*>(lpParam);
+  double sum = 0;
+  for (int i = 0; i < data->size; ++i) {
+    sum += data->arr[i];
+    Sleep(12);  // Sleep for 12 milliseconds after each summation
+  }
+  data->average_val = sum / data->size;
+
+  std::cout << "average_thread: Average value is " << data->average_val
+            << std::endl;
+  return 0;
+}
+
 int main() {
   // 1. Create an array with size and elements from console input
   int n;
@@ -57,17 +72,21 @@ int main() {
   data.arr = numbers.data();
   data.size = n;
 
-  // 2. Create the min_max thread
+  // 2. Create the min_max and average threads
   HANDLE hMinMaxThread = CreateThread(NULL, 0, min_max_thread, &data, 0, NULL);
-  if (hMinMaxThread == NULL) {
+  HANDLE hAverageThread = CreateThread(NULL, 0, average_thread, &data, 0, NULL);
+
+  if (hMinMaxThread == NULL || hAverageThread == NULL) {
     return GetLastError();
   }
 
-  // Temporarily wait for the thread to finish for testing
+  // Temporarily wait for both threads
   WaitForSingleObject(hMinMaxThread, INFINITE);
+  WaitForSingleObject(hAverageThread, INFINITE);
+
   CloseHandle(hMinMaxThread);
+  CloseHandle(hAverageThread);
 
   std::cout << "Main thread finished." << std::endl;
-
   return 0;
 }
