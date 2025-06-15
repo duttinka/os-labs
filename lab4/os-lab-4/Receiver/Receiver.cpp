@@ -7,12 +7,17 @@
 #include "common.h"
 
 int main() {
-  // 1. Ввести с консоли имя бинарного файла
+  // Ввести с консоли имя бинарного файла
   std::string filename;
   std::cout << "Enter binary file name: ";
   std::cin >> filename;
 
-  // 1. Создать бинарный файл для сообщений
+  HANDLE hFileMutex = CreateMutexA(NULL, FALSE, "FileMutex");
+  // Для одного сообщения
+  HANDLE hSemaphoreEmpty = CreateSemaphoreA(NULL, 1, 1, "SemaphoreEmpty");
+  HANDLE hSemaphoreFull = CreateSemaphoreA(NULL, 0, 1, "SemaphoreFull");
+
+  // Создать бинарный файл для сообщений
   std::ofstream outFile(filename, std::ios::binary | std::ios::trunc);
   if (!outFile) {
     std::cerr << "Receiver: Error creating file." << std::endl;
@@ -20,7 +25,7 @@ int main() {
   }
   outFile.close();
 
-  // 3. Запустить заданное количество процессов Sender (пока 1)
+  // Запустить заданное количество процессов Sender (пока 1)
   std::string command_line = "Sender.exe " + filename;
   STARTUPINFOA si;
   PROCESS_INFORMATION pi;
@@ -41,11 +46,32 @@ int main() {
   CloseHandle(pi.hThread);
 
   // Читать сообщение из бинарного файла
-  std::ifstream inFile(filename, std::ios::binary);
-  Message msg;
-  inFile.read(reinterpret_cast<char*>(&msg), sizeof(Message));
-  std::cout << "Receiver: Message received: " << msg.text << std::endl;
-  inFile.close();
+  std::cout << "Receiver ready. Enter 'read' to get message or 'exit' to quit."
+            << std::endl;
+  std::string command;
+  while (std::cin >> command && command != "exit") {
+    if (command == "read") {
+      std::cout << "Receiver: Waiting for a message..." << std::endl;
+      WaitForSingleObject(hSemaphoreFull,
+                          INFINITE);  // Ждать, пока Sender не запишет
 
+      WaitForSingleObject(hFileMutex, INFINITE);  // Захватить мьютекс
+      std::ifstream inFile(filename, std::ios::binary);
+      Message msg;
+      inFile.read(reinterpret_cast<char*>(&msg), sizeof(Message));
+      std::cout << "Receiver: Message received: " << msg.text << std::endl;
+      inFile.close();
+      ReleaseMutex(hFileMutex);  // Освободить мьютекс
+
+      ReleaseSemaphore(hSemaphoreEmpty, 1,
+                       NULL);  // Сообщить Sender, что место освободилось
+    }
+  }
+
+  // ... закрытие хендлов ...
+  CloseHandle(hFileMutex);
+  CloseHandle(hSemaphoreEmpty);
+  CloseHandle(hSemaphoreFull);
+  // ...
   return 0;
 }
