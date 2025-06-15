@@ -3,12 +3,15 @@
 #include <iostream>
 #include <vector>
 
+CRITICAL_SECTION cs; 
+
 // Структура для передачи данных в каждый поток marker
 struct MarkerData {
   int id;
   int* arr;
   int size;
-  bool terminate;  // Флаг для завершения работы
+  bool terminate; // Флаг для завершения работы
+  CRITICAL_SECTION* pCS;
 };
 
 // Функция потока marker
@@ -22,14 +25,18 @@ DWORD WINAPI marker_thread(LPVOID lpParam) {
   while (!data->terminate) {
     int random_index = rand() % data->size;
 
+     EnterCriticalSection(data->pCS);
     if (data->arr[random_index] == 0) {
       Sleep(5);  // Пауза, чтобы увеличить вероятность гонки данных
       data->arr[random_index] = data->id;
+      LeaveCriticalSection(data->pCS);
       Sleep(5);
     } else {
-      std::cout << "Marker " << data->id << ": Can't mark element "
-                << random_index << " - it's already marked!" << std::endl;
-      Sleep(100);  // Немного подождем и попробуем снова
+      // Если ячейка занята, просто выходим из критической секции
+      LeaveCriticalSection(data->pCS);
+
+      // Эта часть логики будет заменена событиями в следующих коммитах
+      Sleep(100); 
     }
   }
 
@@ -52,9 +59,12 @@ int main() {
   std::vector<HANDLE> thread_handles(num_markers);
   std::vector<MarkerData> marker_data(num_markers);
 
+   // Инициализируем критическую секцию
+  InitializeCriticalSection(&cs);
+
   // 3. Запускаем потоки
   for (int i = 0; i < num_markers; ++i) {
-    marker_data[i] = {i + 1, arr.data(), size, false};
+    marker_data[i] = {i + 1, arr.data(), size, false, &cs};
     thread_handles[i] =
         CreateThread(NULL, 0, marker_thread, &marker_data[i], 0, NULL);
   }
@@ -81,6 +91,8 @@ int main() {
   for (int i = 0; i < num_markers; ++i) {
     CloseHandle(thread_handles[i]);
   }
+
+   DeleteCriticalSection(&cs);
 
   return 0;
 }
