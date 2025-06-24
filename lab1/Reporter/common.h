@@ -1,9 +1,7 @@
-
 #pragma once
-#include <string>
 
 // Defines the structure for an employee record
-struct employee {
+struct Employee {
   int num;        // Employee ID number
   char name[10];  // Employee name
   double hours;   // Hours worked
